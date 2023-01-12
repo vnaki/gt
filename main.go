@@ -7,12 +7,14 @@ import (
 )
 
 type People struct {
-	Id int32 `yaml:"id,omitempty"`
+	Id        int32  `db:"id,omitempty" gen:"pk,ai"`
+	Content   string `db:"content" gen:"text"`
+	CreatedAt string `db:"created_at"`
 }
 
 // smallint/int/big/int
 // char/varchar
-type Student struct {
+type ThreeStudent struct {
 	People
 	Name  string `db:"name" gen:"notnull"`
 	Score int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
@@ -33,30 +35,18 @@ type Student struct {
 // BIGINT	-9223372036854775808〜9223372036854775807	0〜18446744073709551615 int64 int
 //
 
-// CREATE TABLE NAME(
-//
-//
-//
-//);
-
 func main() {
+	b := New("user")
 
-	sc := Schema{}
+	sql, err := b.Bind(ThreeStudent{})
 
-	sc.Model(Student{})
+	fmt.Println(sql, err)
 
-	//s := Student{}
-	//
-	//t := reflect.TypeOf(s)
-	//
-	//// 读取字段
-	//fields := t.Field(1)
-	//// 读取Tag
-	//tag := fields.Tag.Get("ini")
-	//
-	//v, _ := json.Marshal(fields)
-	//
-	//fmt.Println(t.Name(), t.Kind(), string(v), tag)
+	q := New("user")
+	q.SetMode(MYSQL)
+
+	sql, err = q.Bind(ThreeStudent{})
+	fmt.Println(sql, err)
 }
 
 type Mode int8
@@ -67,65 +57,107 @@ const (
 )
 
 type Schema struct {
-	sql []string
+	sql    []string
 	schema string
-	mode Mode
+	quote  string
+	mode   Mode
 }
 
 func New(schema string) *Schema {
 	return &Schema{
-		sql: []string{},
-		mode: SQLITE,
+		sql:    []string{},
+		mode:   SQLITE,
 		schema: schema,
+		quote:  "'",
 	}
 }
 
-func (sc *Schema) Generate() {
-
-}
-
-func (sc *Schema) Mode(mode Mode) {
+func (sc *Schema) SetMode(mode Mode) {
 	sc.mode = mode
-}
 
-func (sc *Schema) Model(i interface{}) {
-	if err := sc.model(i); err != nil {
-		panic(err)
+	if mode == MYSQL {
+		sc.quote = "`"
+	} else if mode == SQLITE {
+		sc.quote = "'"
 	}
 }
 
-func (sc *Schema) model(model interface{}) error {
+func (sc *Schema) Bind(i interface{}, table ...string) (string, error) {
+	// NewBinder()
+	b := NewBinder(sc.mode, sc.quote)
+
+	if len(table) > 0 {
+		b.SetTable(table[0])
+	}
+
+	return b.Generate(i)
+}
+
+type Binder struct {
+	mode  Mode
+	quote string
+	table string
+	sql   []string
+}
+
+func NewBinder(mode Mode, quote string) *Binder {
+	return &Binder{
+		sql:   []string{},
+		mode:  mode,
+		quote: quote,
+	}
+}
+
+func (b *Binder) SetTable(table string) {
+	b.table = table
+}
+
+func (b *Binder) Generate(model interface{}) (string, error) {
 	t := reflect.TypeOf(model)
 
 	if kind := t.Kind().String(); kind != "struct" {
-		return fmt.Errorf("unsupported type %v, only type struct is supported", kind)
+		return "", fmt.Errorf("unsupported type %v, only type struct is supported", kind)
 	}
 
 	if t.NumField() == 0 {
-		return fmt.Errorf("struct %v empty field", t.Name())
+		return "", fmt.Errorf("struct %v empty field", t.Name())
 	}
 
-	fmt.Println("table:", t.Name(), t)
+	b.parse(t)
 
+	sf := ""
 
-	for i:=0;i<t.NumField();i++ {
-		v := sc.parseField(t.Field(i))
-		fmt.Println(">>>>>", v)
-
-		sc.sql = append(sc.sql, v)
+	if b.mode == MYSQL {
+		sf = " ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4"
 	}
-	//template := fmt.Sprintf("CREATE TABLE %v;", t.Name())
 
-	// PRIMARY KEY (`id`),
-	// ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COMMENT='工作节点'
-	// KEY `idx_deleted` (`deleted_at`) USING BTREE,
-	return nil
+	if b.table == "" {
+		b.table = b.snake(t.Name())
+	}
+
+	sql := fmt.Sprintf(
+		"CREATE TABLE %v(%v)%v;",
+		fmt.Sprintf("%v%v%v", b.quote, b.table, b.quote),
+		strings.Join(b.sql, ","),
+		sf,
+	)
+
+	return sql, nil
 }
 
-func (sc *Schema) parseField(field reflect.StructField) string {
-	//field.Tag.Get()
-	// column2 datatype attributes,
+func (b *Binder) parse(t reflect.Type) {
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
 
+		if field.Anonymous {
+			b.parse(field.Type)
+		} else {
+			b.sql = append(b.sql, b.parseField(field))
+		}
+	}
+}
+
+func (b *Binder) parseField(field reflect.StructField) string {
 	t := field.Tag.Get("db")
 	if t == "" {
 		return ""
@@ -137,15 +169,15 @@ func (sc *Schema) parseField(field reflect.StructField) string {
 		return ""
 	}
 
-	// type
+	name = fmt.Sprintf("%v%v%v", b.quote, name, b.quote)
 
-
-	gen := sc.parseGen(field.Type.Name(), field.Tag.Get("gen"))
+	// parse sql params
+	gen := b.parseGen(field.Type.Name(), field.Tag.Get("gen"))
 
 	return fmt.Sprintf("%v %v", name, gen)
 }
 
-func (sc *Schema) parseGen(typ, gen string) string {
+func (b *Binder) parseGen(typ, gen string) string {
 	var (
 		ex []string
 		kv = make(map[string]string)
@@ -165,23 +197,25 @@ func (sc *Schema) parseGen(typ, gen string) string {
 
 	if v, ok := kv["type"]; ok && v != "" {
 		r = v
-	} else if sc.isInt(typ) {
+	} else if b.isInt(typ) {
 		var length string
 
-		r = sc.covert(typ)
+		r = b.covert(typ)
 
 		if v, ok := kv["length"]; ok && v != "" {
 			length = v
 		}
 
-		r = fmt.Sprintf("%v(%v)", r, length)
-	} else if sc.isFloat(typ) {
+		if length != "" {
+			r = fmt.Sprintf("%v(%v)", r, length)
+		}
+	} else if b.isFloat(typ) {
 		var (
-			length string
+			length  string
 			decimal = "2"
 		)
 
-		r = sc.covert(typ)
+		r = b.covert(typ)
 
 		if v, ok := kv["length"]; ok && v != "" {
 			length = v
@@ -199,7 +233,7 @@ func (sc *Schema) parseGen(typ, gen string) string {
 			length string
 		)
 
-		r = sc.covert(typ)
+		r = b.covert(typ)
 
 		if v, ok := kv["length"]; ok && v != "" {
 			length = v
@@ -210,12 +244,20 @@ func (sc *Schema) parseGen(typ, gen string) string {
 		}
 	}
 
-	if sc.contain("unsigned", ex) {
+	if b.contain("unsigned", ex) {
 		r = fmt.Sprintf("%v UNSIGNED", r)
 	}
 
-	if sc.contain("notnull", ex) {
+	if b.contain("notnull", ex) {
 		r = fmt.Sprintf("%v NOT NULL", r)
+	}
+
+	if b.contain("pk", ex) {
+		r = fmt.Sprintf("%v PRIMARY KEY", r)
+	}
+
+	if b.contain("ai", ex) {
+		r = fmt.Sprintf("%v AUTO_INCREMENT", r)
 	}
 
 	if v, ok := kv["default"]; ok && v != "" {
@@ -225,7 +267,7 @@ func (sc *Schema) parseGen(typ, gen string) string {
 	return r
 }
 
-func (sc *Schema) isInt(v string) bool {
+func (b *Binder) isInt(v string) bool {
 	switch v {
 	case "int":
 		fallthrough
@@ -246,7 +288,7 @@ func (sc *Schema) isInt(v string) bool {
 	return false
 }
 
-func (sc *Schema) isFloat(v string) bool {
+func (b *Binder) isFloat(v string) bool {
 	switch v {
 	case "float32":
 		fallthrough
@@ -257,39 +299,49 @@ func (sc *Schema) isFloat(v string) bool {
 	return false
 }
 
-func (sc *Schema) covert(v string) string {
+func (b *Binder) covert(v string) string {
 	var kv = map[string]string{
-		"int": "BIGINT",
-		"int8": "TINYINT",
-		"int16": "SMALLINT",
-		"int32": "INT",
-		"int64": "BIGINT",
-		"byte": "TINYINT",
-		"rune": "INT",
-		"float32": "FLOAT", // 单精度
-		"float64": "DOUBLE", // 双精度
-		"string": "VARCHAR",
-		"char": "CHAR",
+		"int":     "bigint",
+		"int8":    "tinyint",
+		"int16":   "smallint",
+		"int32":   "int",
+		"int64":   "bigint",
+		"byte":    "tinyint",
+		"rune":    "int",
+		"float32": "float",  // 单精度
+		"float64": "double", // 双精度
+		"string":  "varchar",
+		"char":    "char",
 	}
 
 	return kv[v]
 }
 
-
-func (sc *Schema) covertFloat(v string) string {
-	var kv = map[string]string{
-		"float32": "FLOAT",
-		"float64": "DOUBLE",
-	}
-
-	return kv[v]
-}
-
-func (sc *Schema) contain(v string, arr []string) bool {
+func (b *Binder) contain(v string, arr []string) bool {
 	for _, v1 := range arr {
 		if v == v1 {
 			return true
 		}
 	}
 	return false
+}
+
+func (b *Binder) snake(v string) string {
+	v = strings.TrimRight(v, "Model")
+
+	d := make([]byte, len(v))
+
+	for i := 0; i < len(v); i++ {
+		if v[i] >= 'A' && v[i] <= 'Z' {
+			if i > 0 {
+				d = append(d, '_')
+			}
+
+			d = append(d, v[i]+'a'-'A')
+		} else {
+			d = append(d, v[i])
+		}
+	}
+
+	return string(d)
 }
