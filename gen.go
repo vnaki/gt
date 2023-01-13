@@ -159,6 +159,10 @@ func (b *GTable) parseGen(typ, gen string) string {
 		if length != "" {
 			r = fmt.Sprintf("%v(%v)", r, length)
 		}
+
+		if b.contain("unsigned", ex) {
+			r = fmt.Sprintf("%v UNSIGNED", r)
+		}
 	} else if b.isFloat(typ) {
 		var (
 			length  string
@@ -178,6 +182,10 @@ func (b *GTable) parseGen(typ, gen string) string {
 		if length != "" {
 			r = fmt.Sprintf("%v(%v,%v)", r, length, decimal)
 		}
+
+		if b.contain("unsigned", ex) {
+			r = fmt.Sprintf("%v UNSIGNED", r)
+		}
 	} else if typ == "string" || typ == "char" {
 		var (
 			length string
@@ -192,10 +200,6 @@ func (b *GTable) parseGen(typ, gen string) string {
 		if length != "" {
 			r = fmt.Sprintf("%v(%v)", r, length)
 		}
-	}
-
-	if b.contain("unsigned", ex) {
-		r = fmt.Sprintf("%v UNSIGNED", r)
 	}
 
 	if b.contain("notnull", ex) {
@@ -260,6 +264,11 @@ func (b *GTable) covert(v string) string {
 		"int16":   "smallint",
 		"int32":   "int",
 		"int64":   "bigint",
+		"uint":    "bigint",
+		"uint8":   "tinyint",
+		"uint16":  "smallint",
+		"uint32":  "int",
+		"uint64":  "bigint",
 		"byte":    "tinyint",
 		"rune":    "int",
 		"float32": "float",  // 单精度
