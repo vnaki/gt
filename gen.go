@@ -9,11 +9,11 @@ import (
 type Mode int8
 
 type GTable struct {
-	mode  Mode
-	quote string
+	mode   Mode
+	quote  string
 	schema string
 	suffix string
-	wrap bool
+	wrap   bool
 }
 
 const (
@@ -23,10 +23,10 @@ const (
 
 func New() *GTable {
 	return &GTable{
-		mode:  SQLITE,
-		quote: "'",
+		mode:   SQLITE,
+		quote:  "'",
 		suffix: "Model",
-		wrap: true,
+		wrap:   true,
 	}
 }
 
@@ -75,7 +75,7 @@ func (b *GTable) Model(model interface{}, table ...string) (string, error) {
 	}
 
 	if len(table) == 0 || table[0] == "" {
-		table = []string{ b.snake(t.Name()) }
+		table = []string{b.snake(t.Name())}
 	}
 
 	sep := ","
@@ -94,7 +94,7 @@ func (b *GTable) Model(model interface{}, table ...string) (string, error) {
 		tb = fmt.Sprintf("%v%v%v.%v", b.quote, b.schema, b.quote, tb)
 	}
 
-	return fmt.Sprintf("CREATE TABLE %v(%v)%v;", tb,	sql, sf), nil
+	return fmt.Sprintf("CREATE TABLE %v(%v)%v;", tb, sql, sf), nil
 }
 
 func (b *GTable) parse(t reflect.Type) (columns []string, err error) {
@@ -127,8 +127,13 @@ func (b *GTable) parseField(field reflect.StructField) (string, error) {
 		return "", nil
 	}
 
+	ws := ""
+	if b.wrap {
+		ws = strings.Repeat(" ", 2)
+	}
+
 	// name
-	name := fmt.Sprintf("%v%v%v", b.quote, strings.SplitN(t, ",", 2)[0], b.quote)
+	name := fmt.Sprintf("%v%v%v%v", ws, b.quote, strings.SplitN(t, ",", 2)[0], b.quote)
 
 	// parse gen
 	gen, err := b.parseGen(field.Type.Name(), field.Tag.Get("gen"))
@@ -167,7 +172,7 @@ func (b *GTable) parseGen(typ, gen string) (string, error) {
 		r = b.covert(typ)
 	}
 
-	var	length string
+	var length string
 
 	if v, ok := kv["length"]; ok && v != "" {
 		length = v
