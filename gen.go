@@ -169,7 +169,11 @@ func (b *GTable) parseGen(typ, gen string) (string, error) {
 			return "", fmt.Errorf("unsupported type %v, please use the `gen` tag", typ)
 		}
 
-		r = b.covert(typ)
+		if b.isInt(typ) && b.contain("pk", ex) && b.contain("ai", ex) {
+			r = "integer"
+		} else {
+			r = b.covert(typ)
+		}
 	}
 
 	var length string
@@ -186,7 +190,7 @@ func (b *GTable) parseGen(typ, gen string) (string, error) {
 		r = fmt.Sprintf("%v(%v)", r, length)
 	}
 
-	if b.contain("unsigned", ex) {
+	if b.mode == MYSQL && b.contain("unsigned", ex) {
 		r = fmt.Sprintf("%v UNSIGNED", r)
 	}
 
@@ -199,7 +203,11 @@ func (b *GTable) parseGen(typ, gen string) (string, error) {
 	}
 
 	if b.contain("ai", ex) {
-		r = fmt.Sprintf("%v AUTO_INCREMENT", r)
+		if b.mode == MYSQL {
+			r = fmt.Sprintf("%v AUTO_INCREMENT", r)
+		} else if b.mode == SQLITE {
+			r = fmt.Sprintf("%v AUTOINCREMENT", r)
+		}
 	}
 
 	if v, ok := kv["default"]; ok {
