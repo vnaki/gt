@@ -1,53 +1,10 @@
-package main
+package gt
 
 import (
 	"fmt"
 	"reflect"
 	"strings"
 )
-
-type People struct {
-	Id        int32  `db:"id,omitempty" gen:"pk,ai"`
-	Content   string `db:"content" gen:"text"`
-	CreatedAt string `db:"created_at"`
-}
-
-// smallint/int/big/int
-// char/varchar
-type ThreeStudent struct {
-	People
-	Name  string `db:"name" gen:"notnull"`
-	Score int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
-}
-
-// length:"1" decimal:"2" default:"1" required:"true" notnull:"true"
-
-// int int8 int16 int32 int64 byte rune
-// uint uint8 uint16 uint32 uint64 byte rune
-// float32 float64
-// char varchar text
-// datetime
-
-// TINYINT	-128〜127	0 〜255        int8
-// SMALLINT	-32768〜32767	0〜65535   int16
-// MEDIUMINT	-8388608〜8388607	0〜16777215
-// INT (INTEGER)	-2147483648〜2147483647	0〜4294967295   int32
-// BIGINT	-9223372036854775808〜9223372036854775807	0〜18446744073709551615 int64 int
-//
-
-func main() {
-	b := New("user")
-
-	sql, err := b.Bind(ThreeStudent{})
-
-	fmt.Println(sql, err)
-
-	q := New("user")
-	q.SetMode(MYSQL)
-
-	sql, err = q.Bind(ThreeStudent{})
-	fmt.Println(sql, err)
-}
 
 type Mode int8
 
@@ -56,63 +13,48 @@ const (
 	MYSQL
 )
 
-type Schema struct {
-	sql    []string
-	schema string
-	quote  string
-	mode   Mode
-}
-
-func New(schema string) *Schema {
-	return &Schema{
-		sql:    []string{},
-		mode:   SQLITE,
-		schema: schema,
-		quote:  "'",
-	}
-}
-
-func (sc *Schema) SetMode(mode Mode) {
-	sc.mode = mode
-
-	if mode == MYSQL {
-		sc.quote = "`"
-	} else if mode == SQLITE {
-		sc.quote = "'"
-	}
-}
-
-func (sc *Schema) Bind(i interface{}, table ...string) (string, error) {
-	// NewBinder()
-	b := NewBinder(sc.mode, sc.quote)
-
-	if len(table) > 0 {
-		b.SetTable(table[0])
-	}
-
-	return b.Generate(i)
-}
-
 type Binder struct {
 	mode  Mode
 	quote string
-	table string
+	schema string
+	suffix string
 	sql   []string
+	wrap bool
 }
 
-func NewBinder(mode Mode, quote string) *Binder {
+func New() *Binder {
 	return &Binder{
 		sql:   []string{},
-		mode:  mode,
-		quote: quote,
+		mode:  SQLITE,
+		quote: "'",
+		suffix: "Model",
+		wrap: true,
 	}
 }
 
-func (b *Binder) SetTable(table string) {
-	b.table = table
+func (b *Binder) SetWrap(wrap bool) {
+	b.wrap = wrap
 }
 
-func (b *Binder) Generate(model interface{}) (string, error) {
+func (b *Binder) SetSuffix(suffix string) {
+	b.suffix = suffix
+}
+
+func (b *Binder) SetSchema(schema string) {
+	b.schema = schema
+}
+
+func (b *Binder) SetMode(mode Mode) {
+	b.mode = mode
+
+	if mode == MYSQL {
+		b.quote = "`"
+	} else if mode == SQLITE {
+		b.quote = "'"
+	}
+}
+
+func (b *Binder) Model(model interface{}, table ...string) (string, error) {
 	t := reflect.TypeOf(model)
 
 	if kind := t.Kind().String(); kind != "struct" {
@@ -131,16 +73,27 @@ func (b *Binder) Generate(model interface{}) (string, error) {
 		sf = " ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4"
 	}
 
-	if b.table == "" {
-		b.table = b.snake(t.Name())
+	if len(table) == 0 || table[0] == "" {
+		table = []string{ b.snake(t.Name()) }
 	}
 
-	sql := fmt.Sprintf(
-		"CREATE TABLE %v(%v)%v;",
-		fmt.Sprintf("%v%v%v", b.quote, b.table, b.quote),
-		strings.Join(b.sql, ","),
-		sf,
-	)
+	sep := ","
+
+	if b.wrap {
+		sep = ",\n"
+	}
+
+	f := strings.Join(b.sql, sep)
+	if b.wrap {
+		f = fmt.Sprintf("%v%v%v", "\n", f, "\n")
+	}
+
+	tb := fmt.Sprintf("%v%v%v", b.quote, table[0], b.quote)
+	if b.schema != "" {
+		tb = fmt.Sprintf("%v%v%v.%v", b.quote, b.schema, b.quote, tb)
+	}
+
+	sql := fmt.Sprintf("CREATE TABLE %v(%v)%v;", tb,	f, sf)
 
 	return sql, nil
 }
@@ -311,7 +264,6 @@ func (b *Binder) covert(v string) string {
 		"float32": "float",  // 单精度
 		"float64": "double", // 双精度
 		"string":  "varchar",
-		"char":    "char",
 	}
 
 	return kv[v]
@@ -327,7 +279,7 @@ func (b *Binder) contain(v string, arr []string) bool {
 }
 
 func (b *Binder) snake(v string) string {
-	v = strings.TrimRight(v, "Model")
+	v = strings.TrimRight(v, b.suffix)
 
 	d := make([]byte, len(v))
 
