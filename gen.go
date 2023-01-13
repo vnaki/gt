@@ -55,15 +55,18 @@ func (b *GTable) SetMode(mode Mode) {
 func (b *GTable) Model(model interface{}, table ...string) (string, error) {
 	t := reflect.TypeOf(model)
 
-	if kind := t.Kind().String(); kind != "struct" {
-		return "", fmt.Errorf("unsupported type %v, only type struct is supported", kind)
+	if k := t.Kind().String(); k != "struct" {
+		return "", fmt.Errorf("unsupported type %v, only type struct is supported", k)
 	}
 
 	if t.NumField() == 0 {
 		return "", fmt.Errorf("struct %v empty field", t.Name())
 	}
 
-	columns := b.parse(t)
+	columns, err := b.parse(t)
+	if err != nil {
+		return "", fmt.Errorf("struct %v error, %v", t.Name(), err.Error())
+	}
 
 	sf := ""
 
@@ -94,40 +97,49 @@ func (b *GTable) Model(model interface{}, table ...string) (string, error) {
 	return fmt.Sprintf("CREATE TABLE %v(%v)%v;", tb,	sql, sf), nil
 }
 
-func (b *GTable) parse(t reflect.Type) (columns []string) {
+func (b *GTable) parse(t reflect.Type) (columns []string, err error) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 
 		if field.Anonymous {
-			columns = append(columns, b.parse(field.Type)...)
+			if c, e := b.parse(field.Type); e != nil {
+				err = e
+				break
+			} else {
+				columns = append(columns, c...)
+			}
 		} else {
-			columns = append(columns, b.parseField(field))
+			if s, e := b.parseField(field); e != nil {
+				err = e
+				break
+			} else {
+				columns = append(columns, s)
+			}
 		}
 	}
+
 	return
 }
 
-func (b *GTable) parseField(field reflect.StructField) string {
+func (b *GTable) parseField(field reflect.StructField) (string, error) {
 	t := field.Tag.Get("db")
 	if t == "" {
-		return ""
+		return "", nil
 	}
 
 	// name
-	name := strings.SplitN(t, ",", 2)[0]
-	if name == "omitempty" {
-		return ""
-	}
-
-	name = fmt.Sprintf("%v%v%v", b.quote, name, b.quote)
+	name := fmt.Sprintf("%v%v%v", b.quote, strings.SplitN(t, ",", 2)[0], b.quote)
 
 	// parse gen
-	gen := b.parseGen(field.Type.Name(), field.Tag.Get("gen"))
+	gen, err := b.parseGen(field.Type.Name(), field.Tag.Get("gen"))
+	if err != nil {
+		return "", err
+	}
 
-	return fmt.Sprintf("%v %v", name, gen)
+	return fmt.Sprintf("%v %v", name, gen), nil
 }
 
-func (b *GTable) parseGen(typ, gen string) string {
+func (b *GTable) parseGen(typ, gen string) (string, error) {
 	var (
 		ex []string
 		kv = make(map[string]string)
@@ -147,59 +159,30 @@ func (b *GTable) parseGen(typ, gen string) string {
 
 	if v, ok := kv["type"]; ok && v != "" {
 		r = v
-	} else if b.isInt(typ) {
-		var length string
+	} else {
+		if !b.isType(typ) {
+			return "", fmt.Errorf("unsupported type %v, please use the `gen` tag", typ)
+		}
 
 		r = b.covert(typ)
+	}
 
-		if v, ok := kv["length"]; ok && v != "" {
-			length = v
+	var	length string
+
+	if v, ok := kv["length"]; ok && v != "" {
+		length = v
+
+		if v, ok := kv["decimal"]; ok && v != "" {
+			length += fmt.Sprintf(",%v", v)
 		}
+	}
 
-		if length != "" {
-			r = fmt.Sprintf("%v(%v)", r, length)
-		}
+	if length != "" {
+		r = fmt.Sprintf("%v(%v)", r, length)
+	}
 
-		if b.contain("unsigned", ex) {
-			r = fmt.Sprintf("%v UNSIGNED", r)
-		}
-	} else if b.isFloat(typ) {
-		var (
-			length  string
-			decimal = "2"
-		)
-
-		r = b.covert(typ)
-
-		if v, ok := kv["length"]; ok && v != "" {
-			length = v
-
-			if v, ok := kv["decimal"]; ok && v != "" {
-				decimal = v
-			}
-		}
-
-		if length != "" {
-			r = fmt.Sprintf("%v(%v,%v)", r, length, decimal)
-		}
-
-		if b.contain("unsigned", ex) {
-			r = fmt.Sprintf("%v UNSIGNED", r)
-		}
-	} else if typ == "string" || typ == "char" {
-		var (
-			length string
-		)
-
-		r = b.covert(typ)
-
-		if v, ok := kv["length"]; ok && v != "" {
-			length = v
-		}
-
-		if length != "" {
-			r = fmt.Sprintf("%v(%v)", r, length)
-		}
+	if b.contain("unsigned", ex) {
+		r = fmt.Sprintf("%v UNSIGNED", r)
 	}
 
 	if b.contain("notnull", ex) {
@@ -222,7 +205,7 @@ func (b *GTable) parseGen(typ, gen string) string {
 		r = fmt.Sprintf("%v COMMENT %v", r, v)
 	}
 
-	return r
+	return r, nil
 }
 
 func (b *GTable) isInt(v string) bool {
@@ -267,6 +250,10 @@ func (b *GTable) isFloat(v string) bool {
 	return false
 }
 
+func (b *GTable) isType(typ string) bool {
+	return b.isInt(typ) || b.isFloat(typ) || typ == "string" || typ == "Time"
+}
+
 func (b *GTable) covert(v string) string {
 	var kv = map[string]string{
 		"int":     "bigint",
@@ -284,6 +271,7 @@ func (b *GTable) covert(v string) string {
 		"float32": "float",  // 单精度
 		"float64": "double", // 双精度
 		"string":  "varchar",
+		"Time":    "datetime",
 	}
 	return kv[v]
 }
