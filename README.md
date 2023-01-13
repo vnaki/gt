@@ -106,10 +106,11 @@ type People struct {
 | --- | --- | --- |
 | type | | 原生sql数据类型:char,text,mediumint 等 |
 | length | | 数据长度 |
-| decimal | 2 | 浮点精度 |
+| decimal | 2 | 浮点类型精度 |
 | default | | 默认值 |
 | pk | | 主键 |
 | ai | | 自增 |
+| comment | | 注释 |
 | unsigned | | 无符号 |
 | notnull | | not null |
 

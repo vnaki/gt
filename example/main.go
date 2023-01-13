@@ -12,6 +12,7 @@ type Model struct {
 
 type ThreeStudentModel struct {
 	Model
+	Num  uint64  `db:"num" gen:"notnull,default:0"`
 	Name  string `db:"name" gen:"notnull,default:"`
 	Content   string `db:"content" gen:"type:text"`
 	Score int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`

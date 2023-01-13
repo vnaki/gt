@@ -214,6 +214,10 @@ func (b *GTable) parseGen(typ, gen string) string {
 		r = fmt.Sprintf("%v DEFAULT %v", r, v)
 	}
 
+	if v, ok := kv["comment"]; ok {
+		r = fmt.Sprintf("%v COMMENT %v", r, v)
+	}
+
 	return r
 }
 
