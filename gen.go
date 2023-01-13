@@ -203,6 +203,10 @@ func (b *GTable) parseGen(typ, gen string) (string, error) {
 	}
 
 	if v, ok := kv["default"]; ok {
+		if v == "" {
+			v = "''"
+		}
+
 		r = fmt.Sprintf("%v DEFAULT %v", r, v)
 	}
 
