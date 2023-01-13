@@ -1,5 +1,7 @@
 #### Usage
 
+see [example](https://github.com/Vnaki/gt/tree/master/example)
+
 ```go 
 package main
 
