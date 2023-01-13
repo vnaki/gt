@@ -5,21 +5,22 @@ import (
 	"gt"
 )
 
-type People struct {
+type Model struct {
 	Id        int32  `db:"id,omitempty" gen:"pk,ai"`
-	Content   string `db:"content" gen:"type:text"`
 	CreatedAt string `db:"created_at"`
 }
 
 type ThreeStudentModel struct {
-	People
-	Name  string `db:"name" gen:"notnull"`
+	Model
+	Name  string `db:"name" gen:"notnull,default:"`
+	Content   string `db:"content" gen:"type:text"`
 	Score int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
 }
 
 type TwoStudent struct {
-	People
+	Model
 	Name  string `db:"name" gen:"notnull"`
+	Content string `db:"content"`
 	Score int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
 }
 
@@ -41,7 +42,7 @@ type TwoStudent struct {
 func main() {
 	b := gt.New()
 	b.SetSchema("stu")
-	b.SetWrap(false)
+	b.SetWrap(true)
 	sql, err := b.Model(ThreeStudentModel{})
 	fmt.Println(sql, err)
 
@@ -49,8 +50,11 @@ func main() {
 	fmt.Println(sql, err)
 
 	b = gt.New()
+	b.SetWrap(true)
 	b.SetMode(gt.MYSQL)
 
-	sql, err = b.Model(TwoStudent{})
+	sql, err = b.Model(ThreeStudentModel{})
+	fmt.Println(sql, err)
+	sql, err = b.Model(TwoStudent{}, "twostu")
 	fmt.Println(sql, err)
 }

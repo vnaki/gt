@@ -8,12 +8,11 @@ import (
 
 type Mode int8
 
-type Binder struct {
+type GTable struct {
 	mode  Mode
 	quote string
 	schema string
 	suffix string
-	sql   []string
 	wrap bool
 }
 
@@ -22,9 +21,8 @@ const (
 	MYSQL
 )
 
-func New() *Binder {
-	return &Binder{
-		sql:   []string{},
+func New() *GTable {
+	return &GTable{
 		mode:  SQLITE,
 		quote: "'",
 		suffix: "Model",
@@ -32,19 +30,19 @@ func New() *Binder {
 	}
 }
 
-func (b *Binder) SetWrap(wrap bool) {
+func (b *GTable) SetWrap(wrap bool) {
 	b.wrap = wrap
 }
 
-func (b *Binder) SetSuffix(suffix string) {
+func (b *GTable) SetSuffix(suffix string) {
 	b.suffix = suffix
 }
 
-func (b *Binder) SetSchema(schema string) {
+func (b *GTable) SetSchema(schema string) {
 	b.schema = schema
 }
 
-func (b *Binder) SetMode(mode Mode) {
+func (b *GTable) SetMode(mode Mode) {
 	b.mode = mode
 
 	if mode == MYSQL {
@@ -54,7 +52,7 @@ func (b *Binder) SetMode(mode Mode) {
 	}
 }
 
-func (b *Binder) Model(model interface{}, table ...string) (string, error) {
+func (b *GTable) Model(model interface{}, table ...string) (string, error) {
 	t := reflect.TypeOf(model)
 
 	if kind := t.Kind().String(); kind != "struct" {
@@ -65,7 +63,7 @@ func (b *Binder) Model(model interface{}, table ...string) (string, error) {
 		return "", fmt.Errorf("struct %v empty field", t.Name())
 	}
 
-	b.parse(t)
+	columns := b.parse(t)
 
 	sf := ""
 
@@ -83,9 +81,9 @@ func (b *Binder) Model(model interface{}, table ...string) (string, error) {
 		sep = ",\n"
 	}
 
-	f := strings.Join(b.sql, sep)
+	sql := strings.Join(columns, sep)
 	if b.wrap {
-		f = fmt.Sprintf("%v%v%v", "\n", f, "\n")
+		sql = fmt.Sprintf("%v%v%v", "\n", sql, "\n")
 	}
 
 	tb := fmt.Sprintf("%v%v%v", b.quote, table[0], b.quote)
@@ -93,24 +91,23 @@ func (b *Binder) Model(model interface{}, table ...string) (string, error) {
 		tb = fmt.Sprintf("%v%v%v.%v", b.quote, b.schema, b.quote, tb)
 	}
 
-	sql := fmt.Sprintf("CREATE TABLE %v(%v)%v;", tb,	f, sf)
-
-	return sql, nil
+	return fmt.Sprintf("CREATE TABLE %v(%v)%v;", tb,	sql, sf), nil
 }
 
-func (b *Binder) parse(t reflect.Type) {
+func (b *GTable) parse(t reflect.Type) (columns []string) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 
 		if field.Anonymous {
-			b.parse(field.Type)
+			columns = append(columns, b.parse(field.Type)...)
 		} else {
-			b.sql = append(b.sql, b.parseField(field))
+			columns = append(columns, b.parseField(field))
 		}
 	}
+	return
 }
 
-func (b *Binder) parseField(field reflect.StructField) string {
+func (b *GTable) parseField(field reflect.StructField) string {
 	t := field.Tag.Get("db")
 	if t == "" {
 		return ""
@@ -124,13 +121,13 @@ func (b *Binder) parseField(field reflect.StructField) string {
 
 	name = fmt.Sprintf("%v%v%v", b.quote, name, b.quote)
 
-	// parse sql params
+	// parse gen
 	gen := b.parseGen(field.Type.Name(), field.Tag.Get("gen"))
 
 	return fmt.Sprintf("%v %v", name, gen)
 }
 
-func (b *Binder) parseGen(typ, gen string) string {
+func (b *GTable) parseGen(typ, gen string) string {
 	var (
 		ex []string
 		kv = make(map[string]string)
@@ -213,14 +210,14 @@ func (b *Binder) parseGen(typ, gen string) string {
 		r = fmt.Sprintf("%v AUTO_INCREMENT", r)
 	}
 
-	if v, ok := kv["default"]; ok && v != "" {
+	if v, ok := kv["default"]; ok {
 		r = fmt.Sprintf("%v DEFAULT %v", r, v)
 	}
 
 	return r
 }
 
-func (b *Binder) isInt(v string) bool {
+func (b *GTable) isInt(v string) bool {
 	switch v {
 	case "int":
 		fallthrough
@@ -241,7 +238,7 @@ func (b *Binder) isInt(v string) bool {
 	return false
 }
 
-func (b *Binder) isFloat(v string) bool {
+func (b *GTable) isFloat(v string) bool {
 	switch v {
 	case "float32":
 		fallthrough
@@ -252,7 +249,7 @@ func (b *Binder) isFloat(v string) bool {
 	return false
 }
 
-func (b *Binder) covert(v string) string {
+func (b *GTable) covert(v string) string {
 	var kv = map[string]string{
 		"int":     "bigint",
 		"int8":    "tinyint",
@@ -268,7 +265,7 @@ func (b *Binder) covert(v string) string {
 	return kv[v]
 }
 
-func (b *Binder) contain(v string, arr []string) bool {
+func (b *GTable) contain(v string, arr []string) bool {
 	for _, v1 := range arr {
 		if v == v1 {
 			return true
@@ -277,7 +274,7 @@ func (b *Binder) contain(v string, arr []string) bool {
 	return false
 }
 
-func (b *Binder) snake(v string) string {
+func (b *GTable) snake(v string) string {
 	v = strings.TrimRight(v, b.suffix)
 
 	d := make([]byte, len(v))

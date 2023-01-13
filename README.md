@@ -8,28 +8,28 @@ import (
 	"gt"
 )
 
-type People struct {
+type Model struct {
 	Id        int32  `db:"id,omitempty" gen:"pk,ai"`
-	Content   string `db:"content" gen:"text"`
 	CreatedAt string `db:"created_at"`
 }
 
 type ThreeStudentModel struct {
-	People
+	Model
 	Name  string `db:"name" gen:"notnull"`
+    Content   string `db:"content" gen:"type:text"`
 	Score int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
 }
 
 type TwoStudent struct {
-	People
+	Model
 	Name  string `db:"name" gen:"notnull"`
+    Content string `db:"content" gen:"type:text"`
 	Score int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
 }
 
 func main() {
 	b := gt.New()
 	b.SetSchema("stu")
-	b.SetWrap(false)
 
 	sql, err := b.Model(ThreeStudentModel{})
 	fmt.Println(sql, err)
@@ -45,16 +45,66 @@ func main() {
 }
 ```
 
+result output
+
+```sql 
+-- sqlite
+CREATE TABLE 'stu'.'three_student'(
+'id' int PRIMARY KEY AUTO_INCREMENT,
+'created_at' varchar,
+'name' varchar NOT NULL,
+'content' text,
+'score' bigint UNSIGNED NOT NULL DEFAULT 1
+);
+
+CREATE TABLE 'stu'.'twostu'(
+'id' int PRIMARY KEY AUTO_INCREMENT,
+'created_at' varchar,
+'name' varchar NOT NULL,
+'content' varchar,
+'score' bigint UNSIGNED NOT NULL DEFAULT 1
+);
+
+-- mysql
+CREATE TABLE `three_student`(
+`id` int PRIMARY KEY AUTO_INCREMENT,
+`created_at` varchar,
+`name` varchar NOT NULL,
+`content` text,
+`score` bigint UNSIGNED NOT NULL DEFAULT 1
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `twostu`(
+`id` int PRIMARY KEY AUTO_INCREMENT,
+`created_at` varchar,
+`name` varchar NOT NULL,
+`content` varchar,
+`score` bigint UNSIGNED NOT NULL DEFAULT 1
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4;
+```
 #### Mode 
 
 - MYSQL
 - SQLITE
 
+#### Tag `db`
+
+Corresponding data table column name, `Id` to `id`, `Content` to `content` 
+
+```go 
+type People struct {
+    Id        int32  `db:"id,omitempty" gen:"pk,ai"`
+    Content   string `db:"content" gen:"type:text"`
+}
+
+
+```
+
 #### Tag `gen`
 
 | 属性 | 默认值 | 说明 |
 | --- | --- | --- |
-| type | | 数据类型:char,text,mediumint 等 |
+| type | | 原生sql数据类型:char,text,mediumint 等 |
 | length | | 数据长度 |
 | decimal | 2 | 浮点精度 |
 | default | | 默认值 |
