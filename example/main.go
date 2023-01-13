@@ -5,9 +5,11 @@ import (
 	"gt"
 )
 
+
 type Model struct {
 	Id        int32  `db:"id,omitempty" gen:"pk,ai"`
-	CreatedAt string `db:"created_at"`
+	CreatedAt time.Time `db:"created_at"`
+	SDK       bool   `db:"sdk" gen:"type:tinyint,length:1"`
 }
 
 type ThreeStudentModel struct {
@@ -15,7 +17,8 @@ type ThreeStudentModel struct {
 	Num  uint64  `db:"num" gen:"notnull,default:0"`
 	Name  string `db:"name" gen:"notnull,default:"`
 	Content   string `db:"content" gen:"type:text"`
-	Score int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
+	Score float32    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
+	Money float64    `db:"money" gen:"length:10,decimal:2,default:1,notnull,unsigned"`
 }
 
 type TwoStudent struct {
