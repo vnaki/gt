@@ -104,7 +104,7 @@ type People struct {
 
 | 属性 | 默认值 | 说明 |
 | --- | --- | --- |
-| type | | 原生sql数据类型:char,text,mediumint 等 |
+| type | | 原生sql数据类型:char,text,mediumint,timestamp,datetime 等 |
 | length | | 数据长度 |
 | decimal | 2 | 浮点类型精度 |
 | default | | 默认值 |
