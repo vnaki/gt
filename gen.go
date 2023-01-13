@@ -93,7 +93,15 @@ func (b *GTable) Model(model interface{}, table ...string) (string, error) {
 		tb = fmt.Sprintf("%v%v%v.%v", b.quote, b.schema, b.quote, tb)
 	}
 
-	return fmt.Sprintf("CREATE TABLE %v(%v)%v;", tb, sql, sf), nil
+	sql = fmt.Sprintf("CREATE TABLE %v(%v)%v;", tb, sql, sf)
+
+	if pos := strings.LastIndex(sql, ","); pos != -1 {
+		bt := []byte(sql)
+		bt = append(bt[:pos], bt[pos+1:]...)
+		sql = string(bt)
+	}
+
+	return sql, nil
 }
 
 func (b *GTable) parse(t reflect.Type) (columns []string, err error) {
@@ -169,6 +177,7 @@ func (b *GTable) parseGen(typ, gen string) (string, error) {
 		}
 
 		if b.isInt(typ) && b.contain("pk", ex) && b.contain("ai", ex) {
+			// fix: compatible sqlite
 			r = "integer"
 		} else {
 			r = b.covert(typ)
