@@ -229,13 +229,23 @@ func (b *GTable) isInt(v string) bool {
 	switch v {
 	case "int":
 		fallthrough
+	case "uint":
+		fallthrough
 	case "int8":
+		fallthrough
+	case "uint8":
 		fallthrough
 	case "int16":
 		fallthrough
+	case "uint16":
+		fallthrough
 	case "int32":
 		fallthrough
+	case "uint32":
+		fallthrough
 	case "int64":
+		fallthrough
+	case "uint64":
 		fallthrough
 	case "byte":
 		fallthrough
