@@ -160,9 +160,9 @@ func (b *GTable) parseGen(typ, gen string) (string, error) {
 		sn := strings.SplitN(v, ":", 2)
 
 		if len(sn) == 2 {
-			kv[sn[0]] = sn[1]
+			kv[strings.Trim(sn[0], " ")] = strings.Trim(sn[1], " ")
 		} else {
-			ex = append(ex, sn[0])
+			ex = append(ex, strings.Trim(sn[0], " "))
 		}
 	}
 
