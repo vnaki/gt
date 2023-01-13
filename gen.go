@@ -8,11 +8,6 @@ import (
 
 type Mode int8
 
-const (
-	SQLITE Mode = iota
-	MYSQL
-)
-
 type Binder struct {
 	mode  Mode
 	quote string
@@ -21,6 +16,11 @@ type Binder struct {
 	sql   []string
 	wrap bool
 }
+
+const (
+	SQLITE Mode = iota
+	MYSQL
+)
 
 func New() *Binder {
 	return &Binder{
@@ -265,7 +265,6 @@ func (b *Binder) covert(v string) string {
 		"float64": "double", // 双精度
 		"string":  "varchar",
 	}
-
 	return kv[v]
 }
 
