@@ -78,10 +78,9 @@ func (b *GTable) Model(model interface{}, table ...string) (string, error) {
 		table = []string{b.snake(t.Name())}
 	}
 
-	sep := ","
-
+	sep := ""
 	if b.wrap {
-		sep = ",\n"
+		sep = "\n"
 	}
 
 	sql := strings.Join(columns, sep)
@@ -219,10 +218,16 @@ func (b *GTable) parseGen(typ, gen string) (string, error) {
 	}
 
 	if v, ok := kv["comment"]; ok {
-		r = fmt.Sprintf("%v COMMENT %v", r, v)
+		if b.mode == MYSQL {
+			return fmt.Sprintf("%v COMMENT %v,", r, v), nil
+		}
+
+		if b.mode == SQLITE {
+			return fmt.Sprintf("%v, -- %v", r, v), nil
+		}
 	}
 
-	return r, nil
+	return fmt.Sprintf("%v,", r), nil
 }
 
 func (b *GTable) isInt(v string) bool {
