@@ -88,12 +88,11 @@ func (b *GTable) Model(model interface{}, table ...string) (string, error) {
 		sql = fmt.Sprintf("%v%v%v", "\n", sql, "\n")
 	}
 
-	tb := fmt.Sprintf("%v%v%v", b.quote, table[0], b.quote)
 	if b.schema != "" {
-		tb = fmt.Sprintf("%v%v%v.%v", b.quote, b.schema, b.quote, tb)
+		table[0] = fmt.Sprintf("%v.%v", b.schema, table[0])
 	}
 
-	sql = fmt.Sprintf("CREATE TABLE %v(%v)%v;", tb, sql, sf)
+	sql = fmt.Sprintf("CREATE TABLE %v(%v)%v;", table[0], sql, sf)
 
 	if pos := strings.LastIndex(sql, ","); pos != -1 {
 		bt := []byte(sql)
