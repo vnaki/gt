@@ -13,7 +13,8 @@ type GTable struct {
 	quote  string
 	schema string
 	suffix string
-	wrap   bool
+	wrap bool
+	drop bool
 }
 
 const (
@@ -26,12 +27,17 @@ func New() *GTable {
 		mode:   SQLITE,
 		quote:  "'",
 		suffix: "Model",
-		wrap:   true,
+		wrap: true,
+		drop: false,
 	}
 }
 
 func (b *GTable) SetWrap(wrap bool) {
 	b.wrap = wrap
+}
+
+func (b *GTable) SetDrop(drop bool) {
+	b.drop = drop
 }
 
 func (b *GTable) SetSuffix(suffix string) {
@@ -98,6 +104,16 @@ func (b *GTable) Model(model interface{}, table ...string) (string, error) {
 		bt := []byte(sql)
 		bt = append(bt[:pos], bt[pos+1:]...)
 		sql = string(bt)
+	}
+
+	if b.drop {
+		drop := fmt.Sprintf("DROP TABLE IF EXISTS %v;", table[0])
+
+		if b.wrap {
+			drop += "\n"
+		}
+
+		sql = drop + sql
 	}
 
 	return sql, nil
