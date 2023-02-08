@@ -13,8 +13,8 @@ type GTable struct {
 	quote  string
 	schema string
 	suffix string
-	wrap bool
-	drop bool
+	wrap   bool
+	drop   bool
 }
 
 const (
@@ -27,8 +27,8 @@ func New() *GTable {
 		mode:   SQLITE,
 		quote:  "'",
 		suffix: "Model",
-		wrap: true,
-		drop: false,
+		wrap:   true,
+		drop:   false,
 	}
 }
 
@@ -191,34 +191,28 @@ func (b *GTable) parseGen(typ, gen string) (string, error) {
 			return "", fmt.Errorf("unsupported type %v, please use the `gen` tag", typ)
 		}
 
-		if b.isInt(typ) && b.contain("pk", ex) && b.contain("ai", ex) {
-			// fix: compatible sqlite
+		// fix: compatible sqlite
+		if b.mode == SQLITE && b.isInt(typ) && b.contain("pk", ex) && b.contain("ai", ex) {
 			r = "integer"
 		} else {
 			r = b.covert(typ)
 		}
 	}
 
-	var length string
+	if b.mode != SQLITE || r != "integer" {
+		if v, ok := kv["length"]; ok && v != "" {
+			l := v
 
-	if v, ok := kv["length"]; ok && v != "" {
-		length = v
+			if v, ok = kv["decimal"]; ok && v != "" {
+				l += "," + v
+			}
 
-		if v, ok := kv["decimal"]; ok && v != "" {
-			length += fmt.Sprintf(",%v", v)
+			r = fmt.Sprintf("%v(%v)", r, l)
 		}
-	}
-
-	if length != "" {
-		r = fmt.Sprintf("%v(%v)", r, length)
 	}
 
 	if b.mode == MYSQL && b.contain("unsigned", ex) {
 		r = fmt.Sprintf("%v UNSIGNED", r)
-	}
-
-	if b.contain("notnull", ex) {
-		r = fmt.Sprintf("%v NOT NULL", r)
 	}
 
 	if b.contain("pk", ex) {
@@ -231,6 +225,10 @@ func (b *GTable) parseGen(typ, gen string) (string, error) {
 		} else if b.mode == SQLITE {
 			r = fmt.Sprintf("%v AUTOINCREMENT", r)
 		}
+	}
+
+	if b.contain("notnull", ex) {
+		r = fmt.Sprintf("%v NOT NULL", r)
 	}
 
 	if v, ok := kv["default"]; ok {
@@ -294,6 +292,10 @@ func (b *GTable) isFloat(v string) bool {
 	}
 
 	return false
+}
+
+func (b *GTable) isNum(v string) bool {
+	return b.isInt(v) || b.isFloat(v)
 }
 
 func (b *GTable) isType(typ string) bool {
