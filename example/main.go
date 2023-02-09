@@ -2,30 +2,30 @@ package main
 
 import (
 	"fmt"
-	"gt"
+	"github.com/vnaki/gt"
+	"time"
 )
 
-
 type Model struct {
-	Id        int32  `db:"id,omitempty" gen:"pk,ai"`
-	CreatedAt time.Time `db:"created_at"`
-	SDK       bool   `db:"sdk" gen:"type:tinyint,length:1"`
+	Id        int32      `db:"id,omitempty" gen:"pk,ai"`
+	CreatedAt *time.Time `db:"created_at"`
+	SDK       bool       `db:"sdk" gen:"type:tinyint,length:1"`
 }
 
 type ThreeStudentModel struct {
 	Model
-	Num  uint64  `db:"num" gen:"notnull,default:0"`
-	Name  string `db:"name" gen:"notnull,default:"`
-	Content   string `db:"content" gen:"type:text"`
-	Score float32    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
-	Money float64    `db:"money" gen:"length:10,decimal:2,default:1,notnull,unsigned"`
+	Num     uint64  `db:"num" gen:"notnull,default:0"`
+	Name    string  `db:"name" gen:"notnull,default:"`
+	Content string  `db:"content" gen:"type:text"`
+	Score   float32 `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
+	Money   float64 `db:"money" gen:"length:10,decimal:2,default:1,notnull,unsigned"`
 }
 
 type TwoStudent struct {
 	Model
-	Name  string `db:"name" gen:"notnull"`
+	Name    string `db:"name" gen:"notnull"`
 	Content string `db:"content"`
-	Score int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
+	Score   int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
 }
 
 // gen: length:1,decimal:2,default:111,pk,ai,unsigned,notnull

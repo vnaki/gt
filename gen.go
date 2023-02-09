@@ -158,7 +158,7 @@ func (b *GTable) parseField(field reflect.StructField) (string, error) {
 	name := fmt.Sprintf("%v%v%v%v", ws, b.quote, strings.SplitN(t, ",", 2)[0], b.quote)
 
 	// parse gen
-	gen, err := b.parseGen(field.Type.Name(), field.Tag.Get("gen"))
+	gen, err := b.parseGen(field.Type.String(), field.Tag.Get("gen"))
 	if err != nil {
 		return "", err
 	}
@@ -299,27 +299,27 @@ func (b *GTable) isNum(v string) bool {
 }
 
 func (b *GTable) isType(typ string) bool {
-	return b.isInt(typ) || b.isFloat(typ) || typ == "string" || typ == "Time"
+	return b.isInt(typ) || b.isFloat(typ) || typ == "string" || typ == "*time.Time"
 }
 
 func (b *GTable) covert(v string) string {
 	var kv = map[string]string{
-		"int":     "bigint",
-		"int8":    "tinyint",
-		"int16":   "smallint",
-		"int32":   "int",
-		"int64":   "bigint",
-		"uint":    "bigint",
-		"uint8":   "tinyint",
-		"uint16":  "smallint",
-		"uint32":  "int",
-		"uint64":  "bigint",
-		"byte":    "tinyint",
-		"rune":    "int",
-		"float32": "float",  // 单精度
-		"float64": "double", // 双精度
-		"string":  "varchar",
-		"Time":    "datetime",
+		"int":        "bigint",
+		"int8":       "tinyint",
+		"int16":      "smallint",
+		"int32":      "int",
+		"int64":      "bigint",
+		"uint":       "bigint",
+		"uint8":      "tinyint",
+		"uint16":     "smallint",
+		"uint32":     "int",
+		"uint64":     "bigint",
+		"byte":       "tinyint",
+		"rune":       "int",
+		"float32":    "float",  // 单精度
+		"float64":    "double", // 双精度
+		"string":     "varchar",
+		"*time.Time": "datetime",
 	}
 	return kv[v]
 }
