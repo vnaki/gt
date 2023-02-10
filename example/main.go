@@ -8,8 +8,9 @@ import (
 
 type Model struct {
 	Id        int32      `db:"id,omitempty" gen:"pk,ai"`
-	CreatedAt *time.Time `db:"created_at"`
 	SDK       bool       `db:"sdk" gen:"type:tinyint,length:1"`
+	CreatedAt time.Time  `db:"created_at"`
+	UpdateAt  *time.Time `db:"updated_at"`
 }
 
 type ThreeStudentModel struct {

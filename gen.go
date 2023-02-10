@@ -156,7 +156,7 @@ func (b *GTable) parseField(field reflect.StructField) (string, error) {
 
 	// name
 	name := fmt.Sprintf("%v%v%v%v", ws, b.quote, strings.SplitN(t, ",", 2)[0], b.quote)
-
+	fmt.Println(">>>", field.Type.String())
 	// parse gen
 	gen, err := b.parseGen(field.Type.String(), field.Tag.Get("gen"))
 	if err != nil {
@@ -299,7 +299,7 @@ func (b *GTable) isNum(v string) bool {
 }
 
 func (b *GTable) isType(typ string) bool {
-	return b.isInt(typ) || b.isFloat(typ) || typ == "string" || typ == "*time.Time"
+	return b.isInt(typ) || b.isFloat(typ) || typ == "string" || typ == "*time.Time" || typ == "time.Time"
 }
 
 func (b *GTable) covert(v string) string {
@@ -319,6 +319,7 @@ func (b *GTable) covert(v string) string {
 		"float32":    "float",  // 单精度
 		"float64":    "double", // 双精度
 		"string":     "varchar",
+		"time.Time":  "datetime",
 		"*time.Time": "datetime",
 	}
 	return kv[v]
