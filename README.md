@@ -7,32 +7,37 @@ package main
 
 import (
 	"fmt"
-	"gt"
+	"github.com/vnaki/gt"
+	"time"
 )
 
 type Model struct {
-	Id        int32  `db:"id,omitempty" gen:"pk,ai"`
-	CreatedAt string `db:"created_at"`
+	Id        int32      `db:"id,omitempty" gen:"pk,ai"`
+	SDK       bool       `db:"sdk" gen:"type:tinyint,length:1"`
+	CreatedAt time.Time  `db:"created_at"`
+	UpdateAt  *time.Time `db:"updated_at"`
 }
 
 type ThreeStudentModel struct {
 	Model
-	Name  string `db:"name" gen:"notnull"`
-    Content   string `db:"content" gen:"type:text"`
-	Score int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
+	Num     uint64  `db:"num" gen:"notnull,default:0"`
+	Name    string  `db:"name" gen:"notnull,default:"`
+	Content string  `db:"content" gen:"type:text"`
+	Score   float32 `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
+	Money   float64 `db:"money" gen:"length:10,decimal:2,default:1,notnull,unsigned"`
 }
 
 type TwoStudent struct {
 	Model
-	Name  string `db:"name" gen:"notnull"`
-    Content string `db:"content" gen:"type:text"`
-	Score int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
+	Name    string `db:"name" gen:"notnull"`
+	Content string `db:"content"`
+	Score   int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
 }
 
 func main() {
 	b := gt.New()
 	b.SetSchema("stu")
-
+	b.SetWrap(true)
 	sql, err := b.Model(ThreeStudentModel{})
 	fmt.Println(sql, err)
 
@@ -40,11 +45,15 @@ func main() {
 	fmt.Println(sql, err)
 
 	b = gt.New()
+	b.SetWrap(true)
 	b.SetMode(gt.MYSQL)
 
-	sql, err = b.Model(TwoStudent{})
+	sql, err = b.Model(ThreeStudentModel{})
+	fmt.Println(sql, err)
+	sql, err = b.Model(TwoStudent{}, "twostu")
 	fmt.Println(sql, err)
 }
+
 ```
 
 result output

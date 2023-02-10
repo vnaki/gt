@@ -156,7 +156,7 @@ func (b *GTable) parseField(field reflect.StructField) (string, error) {
 
 	// name
 	name := fmt.Sprintf("%v%v%v%v", ws, b.quote, strings.SplitN(t, ",", 2)[0], b.quote)
-	fmt.Println(">>>", field.Type.String())
+
 	// parse gen
 	gen, err := b.parseGen(field.Type.String(), field.Tag.Get("gen"))
 	if err != nil {
