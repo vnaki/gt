@@ -12,7 +12,7 @@ import (
 )
 
 type Model struct {
-	Id        int32      `db:"id,omitempty" gen:"pk,ai"`
+	Id        int32      `db:"id,omitempty" gen:"length:10,pk,ai"`
 	SDK       bool       `db:"sdk" gen:"type:tinyint,length:1"`
 	CreatedAt time.Time  `db:"created_at"`
 	UpdateAt  *time.Time `db:"updated_at"`
@@ -58,39 +58,52 @@ func main() {
 
 result output
 
-```sql 
+```sql
+
 -- sqlite
-CREATE TABLE 'stu'.'three_student'(
-'id' int PRIMARY KEY AUTO_INCREMENT,
-'created_at' varchar,
-'name' varchar NOT NULL,
-'content' text,
-'score' bigint UNSIGNED NOT NULL DEFAULT 1
+CREATE TABLE stu.three_student(
+    'id' integer PRIMARY KEY AUTOINCREMENT,
+    'sdk' tinyint(1),
+    'created_at' datetime,
+    'updated_at' datetime,
+    'num' bigint NOT NULL DEFAULT 0,
+    'name' varchar NOT NULL DEFAULT '',
+    'content' text,
+    'score' float(1,1) NOT NULL DEFAULT 1,
+    'money' double(10,2) NOT NULL DEFAULT 1
 );
 
-CREATE TABLE 'stu'.'twostu'(
-'id' int PRIMARY KEY AUTO_INCREMENT,
-'created_at' varchar,
-'name' varchar NOT NULL,
-'content' varchar,
-'score' bigint UNSIGNED NOT NULL DEFAULT 1
+CREATE TABLE stu.twostu(
+    'id' integer PRIMARY KEY AUTOINCREMENT,
+    'sdk' tinyint(1),
+    'created_at' datetime,
+    'updated_at' datetime,
+    'name' varchar NOT NULL,
+    'content' varchar,
+    'score' bigint(1,1) NOT NULL DEFAULT 1
 );
 
 -- mysql
-CREATE TABLE `three_student`(
-`id` int PRIMARY KEY AUTO_INCREMENT,
-`created_at` varchar,
-`name` varchar NOT NULL,
-`content` text,
-`score` bigint UNSIGNED NOT NULL DEFAULT 1
+CREATE TABLE three_student(
+  `id` int(10) PRIMARY KEY AUTO_INCREMENT,
+  `sdk` tinyint(1),
+  `created_at` datetime,
+  `updated_at` datetime,
+  `num` bigint NOT NULL DEFAULT 0,
+  `name` varchar NOT NULL DEFAULT '',
+  `content` text,
+  `score` float(1,1) UNSIGNED NOT NULL DEFAULT 1,
+  `money` double(10,2) UNSIGNED NOT NULL DEFAULT 1
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE `twostu`(
-`id` int PRIMARY KEY AUTO_INCREMENT,
-`created_at` varchar,
-`name` varchar NOT NULL,
-`content` varchar,
-`score` bigint UNSIGNED NOT NULL DEFAULT 1
+CREATE TABLE twostu(
+    `id` int(10) PRIMARY KEY AUTO_INCREMENT,
+   `sdk` tinyint(1),
+   `created_at` datetime,
+   `updated_at` datetime,
+   `name` varchar NOT NULL,
+   `content` varchar,
+   `score` bigint(1,1) UNSIGNED NOT NULL DEFAULT 1
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4;
 ```
 #### Mode 

@@ -7,7 +7,7 @@ import (
 )
 
 type Model struct {
-	Id        int32      `db:"id,omitempty" gen:"pk,ai"`
+	Id        int32      `db:"id,omitempty" gen:"length:10,pk,ai"`
 	SDK       bool       `db:"sdk" gen:"type:tinyint,length:1"`
 	CreatedAt time.Time  `db:"created_at"`
 	UpdateAt  *time.Time `db:"updated_at"`
