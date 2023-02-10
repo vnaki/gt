@@ -152,19 +152,3 @@ type People struct {
 ``` 
 string -> varchar
 ```
-
-```
-// int int8 int16 int32 int64 byte rune
-// uint uint8 uint16 uint32 uint64 byte rune
-// float32 float64
-// char varchar text
-// datetime timestamp
-
-// TINYINT	-128〜127	0 〜255        int8
-// SMALLINT	-32768〜32767	0〜65535   int16
-// MEDIUMINT	-8388608〜8388607	0〜16777215
-// INT (INTEGER)	-2147483648〜2147483647	0〜4294967295   int32
-// BIGINT	-9223372036854775808〜9223372036854775807	0〜18446744073709551615 int64 int
-//
-
-```
