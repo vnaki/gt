@@ -58,30 +58,29 @@ func (b *GTable) SetMode(mode Mode) {
 	}
 }
 
-func (b *GTable) Model(model interface{}, table ...string) (string, error) {
+func (b *GTable) Model(model interface{}, table ...string) ([]string, error) {
+	r := []string{}
 	t := reflect.TypeOf(model)
 
 	if k := t.Kind().String(); k != "struct" {
-		return "", fmt.Errorf("unsupported type %v, only type struct is supported", k)
+		return r, fmt.Errorf("unsupported type %v, only type struct is supported", k)
 	}
 
 	if t.NumField() == 0 {
-		return "", fmt.Errorf("struct %v empty field", t.Name())
+		return r, fmt.Errorf("struct %v empty field", t.Name())
 	}
 
 	columns, err := b.parse(t)
 	if err != nil {
-		return "", fmt.Errorf("struct %v error, %v", t.Name(), err.Error())
-	}
-
-	sf := ""
-
-	if b.mode == MYSQL {
-		sf = " ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4"
+		return r, fmt.Errorf("struct %v error, %v", t.Name(), err.Error())
 	}
 
 	if len(table) == 0 || table[0] == "" {
 		table = []string{b.snake(t.Name())}
+	}
+
+	if b.drop {
+		r = append(r, fmt.Sprintf("DROP TABLE IF EXISTS %v;", table[0]))
 	}
 
 	sep := ""
@@ -98,25 +97,20 @@ func (b *GTable) Model(model interface{}, table ...string) (string, error) {
 		table[0] = fmt.Sprintf("%v.%v", b.schema, table[0])
 	}
 
-	sql = fmt.Sprintf("CREATE TABLE %v(%v)%v;", table[0], sql, sf)
-
 	if pos := strings.LastIndex(sql, ","); pos != -1 {
 		bt := []byte(sql)
 		bt = append(bt[:pos], bt[pos+1:]...)
 		sql = string(bt)
 	}
 
-	if b.drop {
-		drop := fmt.Sprintf("DROP TABLE IF EXISTS %v;", table[0])
-
-		if b.wrap {
-			drop += "\n"
-		}
-
-		sql = drop + sql
+	sf := ""
+	if b.mode == MYSQL {
+		sf = " ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4"
 	}
 
-	return sql, nil
+	r = append(r, fmt.Sprintf("CREATE TABLE %v(%v)%v;", table[0], sql, sf))
+
+	return r, nil
 }
 
 func (b *GTable) parse(t reflect.Type) (columns []string, err error) {

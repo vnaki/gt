@@ -12,46 +12,38 @@ import (
 )
 
 type Model struct {
-	Id        int32      `db:"id,omitempty" gen:"length:10,pk,ai"`
-	SDK       bool       `db:"sdk" gen:"type:tinyint,length:1"`
-	CreatedAt time.Time  `db:"created_at"`
-	UpdateAt  *time.Time `db:"updated_at"`
+	Id        uint32     `db:"id,omitempty" gen:"length:10,pk,ai,unsigned"`
+	CreatedAt time.Time  `db:"created_at" gen:"notnull"`
+	UpdatedAt *time.Time `db:"updated_at"`
+	DeletedAt *time.Time `db:"deleted_at"`
 }
 
-type ThreeStudentModel struct {
-	Model
-	Num     uint64  `db:"num" gen:"notnull,default:0"`
-	Name    string  `db:"name" gen:"notnull,default:"`
-	Content string  `db:"content" gen:"type:text"`
-	Score   float32 `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
-	Money   float64 `db:"money" gen:"length:10,decimal:2,default:1,notnull,unsigned"`
-}
-
-type TwoStudent struct {
-	Model
-	Name    string `db:"name" gen:"notnull"`
-	Content string `db:"content"`
-	Score   int    `db:"score" gen:"length:1,decimal:1,default:1,notnull,unsigned"`
+type UserModel struct {
+    Model
+    Username string  `db:"username" gen:"length:10,comment:'用户名称',notnull"`
+    Content  string  `db:"content" gen:"type:text"`
+    Email    string  `db:"email" gen:"length:100,notnull"`
+    Phone    string  `db:"phone" gen:"type:char,length:11,notnull"`
+    Score    float32 `db:"score" gen:"length:10,decimal:2,default:1,notnull,unsigned"`
+    Money    float64 `db:"money" gen:"length:10,decimal:2,default:1,notnull,unsigned"`
+    Status   uint8   `db:"status" gen:"length:2,notnull,unsigned"`
 }
 
 func main() {
 	b := gt.New()
-	b.SetSchema("stu")
+	b.SetSchema("student")
 	b.SetWrap(true)
-	sql, err := b.Model(ThreeStudentModel{})
-	fmt.Println(sql, err)
-
-	sql, err = b.Model(TwoStudent{}, "twostu")
-	fmt.Println(sql, err)
-
-	b = gt.New()
-	b.SetWrap(true)
+	b.SetDrop(false)
 	b.SetMode(gt.MYSQL)
-
-	sql, err = b.Model(ThreeStudentModel{})
-	fmt.Println(sql, err)
-	sql, err = b.Model(TwoStudent{}, "twostu")
-	fmt.Println(sql, err)
+	b.SetSuffix("Model")
+	ss, err := b.Model(UserModel{})
+	if err != nil {
+		panic(err)
+	} else {
+		for _, s := range ss {
+			fmt.Println(s)
+		}
+	}
 }
 
 ```
@@ -61,49 +53,34 @@ result output
 ```sql
 
 -- sqlite
-CREATE TABLE stu.three_student(
-    'id' integer PRIMARY KEY AUTOINCREMENT,
-    'sdk' tinyint(1),
-    'created_at' datetime,
-    'updated_at' datetime,
-    'num' bigint NOT NULL DEFAULT 0,
-    'name' varchar NOT NULL DEFAULT '',
-    'content' text,
-    'score' float(1,1) NOT NULL DEFAULT 1,
-    'money' double(10,2) NOT NULL DEFAULT 1
-);
-
-CREATE TABLE stu.twostu(
-    'id' integer PRIMARY KEY AUTOINCREMENT,
-    'sdk' tinyint(1),
-    'created_at' datetime,
-    'updated_at' datetime,
-    'name' varchar NOT NULL,
-    'content' varchar,
-    'score' bigint(1,1) NOT NULL DEFAULT 1
+CREATE TABLE student.user(
+  'id' integer PRIMARY KEY AUTOINCREMENT,
+  'created_at' datetime NOT NULL,
+  'updated_at' datetime,
+  'deleted_at' datetime,
+  'username' varchar(10) NOT NULL, -- '用户名称'
+  'content' text,
+  'email' varchar(100) NOT NULL,
+  'phone' char(11) NOT NULL,
+  'score' float(10,2) NOT NULL DEFAULT 1,
+  'money' double(10,2) NOT NULL DEFAULT 1,
+  'status' tinyint(2) NOT NULL
 );
 
 -- mysql
-CREATE TABLE three_student(
-  `id` int(10) PRIMARY KEY AUTO_INCREMENT,
-  `sdk` tinyint(1),
-  `created_at` datetime,
-  `updated_at` datetime,
-  `num` bigint NOT NULL DEFAULT 0,
-  `name` varchar NOT NULL DEFAULT '',
-  `content` text,
-  `score` float(1,1) UNSIGNED NOT NULL DEFAULT 1,
-  `money` double(10,2) UNSIGNED NOT NULL DEFAULT 1
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE twostu(
-    `id` int(10) PRIMARY KEY AUTO_INCREMENT,
-   `sdk` tinyint(1),
-   `created_at` datetime,
-   `updated_at` datetime,
-   `name` varchar NOT NULL,
-   `content` varchar,
-   `score` bigint(1,1) UNSIGNED NOT NULL DEFAULT 1
+CREATE TABLE student.user(
+    `id` int(10) UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    `created_at` datetime NOT NULL,
+    `updated_at` datetime,
+    `deleted_at` datetime,
+    `username` varchar(10) NOT NULL COMMENT '用户名称',
+    `content` text,
+    `email` varchar(100) NOT NULL,
+    `phone` char(11) NOT NULL,
+    `score` float(10,2) UNSIGNED NOT NULL DEFAULT 1,
+    `money` double(10,2) UNSIGNED NOT NULL DEFAULT 1,
+    `status` tinyint(2) UNSIGNED NOT NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4;
 ```
 #### Mode 
